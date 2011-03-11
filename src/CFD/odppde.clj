@@ -1,7 +1,11 @@
 (ns cfd.odppde
-  (:use [cfd.core]))
+  (:use [incanter.core]))
 
 ;; Explicit Methods  
+(defn calc-coeff
+  "Calculates common coefficent term used in explicit methods"
+  [x-step t-step alpha])
+  
 (defn ftcs
   "Uses forward time/central space method to calculate n+1.
    Takes a 1x3 vector as grid."
@@ -12,15 +16,11 @@
         coeff   (calc-coeff x-step t-step alpha)]
     ($= i + coeff * (i+1 - (2 * i) + i-1))))
 
-(defn calc-coeff
-  "Calculates common coefficent term used in explicit methods"
-  [x-step t-step alpha])
-    
 (defn ftcs-stable?
   "Check ftcs stability condition"
   [x-step t-step alpha]
   (<= (calc-coeff x-step t-step alpha)
-      1/2)))
+      1/2))
       
 (defn dufort-frankel
   "Uses DuFort-Frankel method to calculate n+1

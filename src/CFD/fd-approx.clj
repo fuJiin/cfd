@@ -1,5 +1,5 @@
 (ns cfd.fd-approx
-  (:use [cfd.core]))
+  (:use [incanter.core]))
   
 (def coefficients
   {1    {:}})
