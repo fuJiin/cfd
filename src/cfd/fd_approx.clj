@@ -37,9 +37,10 @@
                 -3  -4
                 -2  6
                 -1  -4
-                0   1}]
+                0   1}]})
                 
-   :central   [{:denom  2
+(def second-order-coeffs
+  {:central   [{:denom  2
                 -1      -1
                 0       0
                 1       1}
@@ -59,10 +60,9 @@
                 -1      -4
                 0       6
                 1       -4
-                2       1}]})
-                
-(def second-order-coeffs
-  {:forward   [{:denom  2
+                2       1}]
+    
+   :forward   [{:denom  2
                 0       -3
                 1       4
                 2       -1}
@@ -144,6 +144,15 @@
                 3       -1}]})
 
 ;; Approximation functions
+(defn get-coeff-map 
+  "Pick coefficients based on order"
+  [order]
+  (case order
+    1   first-order-coeffs
+    2   second-order-coeffs
+    4   fourth-order-coeffs
+    :else (throw (Exception. "Invalid approximation orde"))))
+
 (defn derive-func
   "Returns a function that approximates the derivative of the
    specified order, for a given function.
@@ -153,22 +162,18 @@
    - i:     position to calculate at
    - step:  grid steps"
   [power order method]
-  (let [c-map   (case   order                 ;; pick coefficients based on order
-                  1     first-order-coeffs
-                  2     second-order-coeffs
-                  4     fourth-order-coeffs
-                  :else (throw (Exception. "Invalid approximation order")))
-        c-hash  (nth (dec power) (c-map method))  ;; narrow to specific method and power
+  (let [c-map   (get-map order)
+        c-hash  (nth (c-map method) (dec power))  ;; narrow to specific method and power
         denom   (c-hash :denom)                   ;; filter out denominator
         coeffs  (dissoc c-hash :denom)]           ;; get actual coefficients
     (fn [func i step]
       (/
-        (reduce +                                       ;; sum together...
-          (map #(* (coeffs %)                           ;; a collection that multiplies coefficient...
-                   (func (+ i (* % step))))             ;; ...with the value of function called on i+?
-                (keys coeffs)))
-        ($= step ** power)))))                          ;; divide by step expt power
-  
+        (reduce +                                 ;; sum together...
+          (map #(* (coeffs %)                     ;; a collection that multiplies coefficient...
+                   (func (+ i (* % step))))       ;; ...with the value of function called on i+?
+                (keys coeffs)))                   
+        ($= step ** power)))))                    ;; divide by step expt power
+                                                  
 (defn fd-approx
   "Calculate approximated derivative of given order, using specified method,
    for a given function, position, and step size"
