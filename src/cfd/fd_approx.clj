@@ -162,7 +162,7 @@
    - i:     position to calculate at
    - step:  grid steps"
   [power order method]
-  (let [c-map   (get-map order)
+  (let [c-map   (get-coeff-map order)
         c-hash  (nth (c-map method) (dec power))  ;; narrow to specific method and power
         denom   (c-hash :denom)                   ;; filter out denominator
         coeffs  (dissoc c-hash :denom)]           ;; get actual coefficients

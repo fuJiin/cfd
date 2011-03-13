@@ -11,26 +11,30 @@
 (defn f-deriv-2 [x]
   ($= 6 * x))
   
-(def meths [:backward :central :forward])
-  
 (def i-vals [0.5 1.5])  
   
 (def step-sizes [0.00001 0.0001 0.001 0.01 0.1 0.2 0.3])
 
-(defn to-table
-  "Creates a table for specified finite difference approximation"
-  [power order func i steps]
-  (let [c-map   (get-map order)
+(defn get-approx
+  "Creates a table for specified finite difference approximation.
+   Takes in power, order, function, x, and steps to iterate through.
+   It'll find all methods available for the order, and format results
+   for each method in a separate row."
+  [power order func x steps]
+  (let [c-map   (get-coeff-map order)
         data    (map (fn [method]
-                       (map #(fd-approx power order method func i %) steps))
-                     (vec (keys c-map)))])
-  
-  (let [approx  (map #(fd-approx power order method func i %) steps)
-        deriv   (case   power
-                 1      f-deriv
-                 2      f-deriv-2
-                 :else  (throw (Exception. "Invalid power")))
-        actual  (deriv i)
-        headers (conj step-sizes "actual")
-        data    (conj (vec approx) actual)]
-    (dataset headers [data])))
+                       (cons (name method)
+                             (map #(fd-approx power order method func x %) steps)))
+                     (keys c-map))
+        header  (cons "Differencing" step-sizes)]
+    (dataset header data)))
+    
+(defn approx-compare
+  [power order func x steps]
+  (let [approx  (get-approx power order func x steps)
+        deriv   (case power
+                  1   f-deriv
+                  2   f-deriv-2)
+        actual  (if deriv (deriv x) nil)]
+    {:actual actual
+     :approx approx}))
