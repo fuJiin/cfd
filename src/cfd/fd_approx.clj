@@ -164,7 +164,7 @@
   [power order method]
   (let [c-map   (get-coeff-map order)
         c-hash  (nth (c-map method) (dec power))  ;; narrow to specific method and power
-        denom   (c-hash :denom)                   ;; filter out denominator
+        denom   (or (c-hash :denom) 1)            ;; filter out denominator, or set to 1
         coeffs  (dissoc c-hash :denom)]           ;; get actual coefficients
     (fn [func i step]
       (/
@@ -172,7 +172,7 @@
           (map #(* (coeffs %)                     ;; a collection that multiplies coefficient...
                    (func (+ i (* % step))))       ;; ...with the value of function called on i+?
                 (keys coeffs)))                   
-        ($= step ** power)))))                    ;; divide by step expt power
+        ($= denom * (step ** power))))))          ;; divide by step expt power * denominator
                                                   
 (defn fd-approx
   "Calculate approximated derivative of given order, using specified method,

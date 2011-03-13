@@ -30,6 +30,7 @@
     (dataset header data)))
     
 (defn approx-compare
+  "Runs approximations and compare to actual values"
   [power order func x steps]
   (let [approx  (get-approx power order func x steps)
         deriv   (case power
