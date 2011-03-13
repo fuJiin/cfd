@@ -21,21 +21,21 @@
    It'll find all methods available for the order, and format results
    for each method in a separate row."
   [power order func x steps]
-  (let [c-map   (get-coeff-map order)
-        data    (map (fn [method]
-                       (cons (name method)
+  (let [c-map   (get-coeff-map order)               ;; get coefficients
+        data    (map (fn [method]                   ;; get rows of data
+                       (cons (name method)          ;; ...made of computation done with each step 
                              (map #(fd-approx power order method func x %) steps)))
-                     (keys c-map))
-        header  (cons "Differencing" step-sizes)]
-    (dataset header data)))
+                     (keys c-map))                  ;; ...for each differencing method
+        header  (cons "Differencing" step-sizes)]   ;; table headers
+    (dataset header data)))                         ;; generate table set
     
 (defn approx-compare
   "Runs approximations and compare to actual values"
   [power order func x steps]
-  (let [approx  (get-approx power order func x steps)
-        deriv   (case power
-                  1   f-deriv
+  (let [approx  (get-approx power order func x steps) ;; get approximations
+        deriv   (case power                           ;; figure out which derivative to use
+                  1   f-deriv                         ;; for actual calcalation
                   2   f-deriv-2)
-        actual  (if deriv (deriv x) nil)]
-    {:actual actual
+        actual  (if deriv (deriv x) nil)]             ;; calculate actual value
+    {:actual actual                                   ;; map results for comparison
      :approx approx}))
