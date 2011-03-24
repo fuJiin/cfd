@@ -35,11 +35,33 @@
         (1 + 2 * coeff))))
 
 ;; Implicit Methods
+;; For simplication purposes, boundary conditions are assumed constant at edges
 (defn laasonen
-  "Uses Laasonen implicit method to solve n+1"
-  [grid x-step t-step alpha])
+  "Uses Laasonen implicit method to solve n+1.
+   Takes in 1xn grid of points"
+  [grid x-step t-step alpha]
+  (let [coeff   ($= alpha * t-step / (x-step ** 2))
+        b       (- ($= 2 * coeff + 1))
+        d-grid  (map #(- %) grid)] ;; RHS is negative of current point for Laasonen
+    (solve-with-tridiag coeff b coeff d-grid)))
   
 (defn crank-nicolson
   "Uses Crank-Nicolson to solve n+1"
-  [grid x-step t-step alpha])
-  
+  [grid x-step t-step alpha]
+  (let [coeff   ($= alpha / (2 * (x-step ** 2)))
+        b       (- ($= 2 * coeff + ($= t-step ** -1)))
+        d-grid  (map (fn [pt]                   ;; mapping RHS of equation
+                        (let [i (.indexOf grid pt)]
+                          (if (or (= pt 0) (= ($= pt (.length grid) - 1)))
+                              pt                ;; just return the point if at boundary conditions
+                              ($= (pt / t-step) ;; otherwise calculate based on i-1, i, and i+1
+                                  +
+                                  (coeff * ($= (nth grid (inc i)) - 2 * pt + (nth grid (dec i))) / ($= x-step ** 2))))))
+                      grid)]                    ;; apply map function to current grid
+    (solve-with-tridiag coeff b coeff d-grid)))
+
+(defn solve-with-tridiag
+  "Solves implicit formula using tridiagonal matrix formulation.
+   Takes in coefficents a, b, c, and a 1xn vector as RHS values for D"
+   [a b c d-grid]
+   )
