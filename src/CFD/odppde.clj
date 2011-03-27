@@ -49,14 +49,22 @@
                0))))))              ;; otherwise assign 0
   ([diag-grid]
     (diag-offset diag-grid 0)))     ;; default offset to 0 if no provided
+
+(defn coeff-matrix
+  "Create coefficients matrix from a, b, c values.
+   Assumes coefficients to be constant for at all i values."
+  [length a b c]
+  (let [a-grid (diag (repeat length a))
+        b-grid (diag-offset (repeat length b) 1)
+        c-grid (diag-offset (repeat length c) -1)]
+    (plus a-grid b-grid c-grid)))
               
 (defn solve-with-tridiag
   "Solves implicit formula using tridiagonal matrix formulation.
    Takes in coefficents a, b, c, and a 1xn vector as RHS values for D"
    [a b c d-grid]
-   (let [length (.length d-grid)
-         a-grid (diag (repeat length a))
-         b-grid ()]))
+   (let [length (count d-grid)
+         coeffs (coeff-matrix length a b c)]))
          
 (defn laasonen
   "Uses Laasonen implicit method to solve n+1.
