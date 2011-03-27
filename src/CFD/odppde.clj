@@ -36,6 +36,28 @@
 
 ;; Implicit Methods
 ;; For simplication purposes, boundary conditions are assumed constant at edges
+(defn diag-offset
+  "Creates a diagonal matrix with offset.
+   Positive offset shifts right; negative offset shifts left"
+  ([diag-grid offset]
+   (let [length (count diag-grid)]
+     (matrix
+       (for [i (range 0 length)]    ;; for each row
+         (for [x (range 0 length)]  ;; iterate through columns
+           (if (= i (- x offset))   ;; if at index with index
+               (nth diag-grid i)    ;; assign grid value
+               0))))))              ;; otherwise assign 0
+  ([diag-grid]
+    (diag-offset diag-grid 0)))     ;; default offset to 0 if no provided
+              
+(defn solve-with-tridiag
+  "Solves implicit formula using tridiagonal matrix formulation.
+   Takes in coefficents a, b, c, and a 1xn vector as RHS values for D"
+   [a b c d-grid]
+   (let [length (.length d-grid)
+         a-grid (diag (repeat length a))
+         b-grid ()]))
+         
 (defn laasonen
   "Uses Laasonen implicit method to solve n+1.
    Takes in 1xn grid of points"
@@ -56,12 +78,8 @@
                               pt                ;; just return the point if at boundary conditions
                               ($= (pt / t-step) ;; otherwise calculate based on i-1, i, and i+1
                                   +
-                                  (coeff * ($= (nth grid (inc i)) - 2 * pt + (nth grid (dec i))) / ($= x-step ** 2))))))
+                                  (coeff * ($= (nth grid (inc i)) - 2 * pt + (nth grid (dec i))) 
+                                               / 
+                                               ($= x-step ** 2))))))
                       grid)]                    ;; apply map function to current grid
     (solve-with-tridiag coeff b coeff d-grid)))
-
-(defn solve-with-tridiag
-  "Solves implicit formula using tridiagonal matrix formulation.
-   Takes in coefficents a, b, c, and a 1xn vector as RHS values for D"
-   [a b c d-grid]
-   )
