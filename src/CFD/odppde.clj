@@ -96,15 +96,14 @@
   "Uses Crank-Nicolson to solve n+1"
   [grid x-step t-step alpha]
   (let [coeff   ($= alpha / (2 * (x-step ** 2)))
-        b       (- ($= 2 * coeff + ($= t-step ** -1)))
-        d-grid  (map (fn [pt]                   ;; mapping RHS of equation
-                        (let [i (.indexOf grid pt)]
-                          (if (or (= pt 0) (= ($= pt (.length grid) - 1)))
-                              pt                ;; just return the point if at boundary conditions
-                              ($= (pt / t-step) ;; otherwise calculate based on i-1, i, and i+1
-                                  +
-                                  (coeff * ($= (nth grid (inc i)) - 2 * pt + (nth grid (dec i)))
-                                               /
-                                               ($= x-step ** 2))))))
-                      grid)]                    ;; apply map function to current grid
+        b       (- ($= 2 * coeff + (1 / t-step)))
+        d-grid  (for [i (range 0 (count grid))]
+                  (let [pt (nth grid i)]
+                    (if (or (= i 0) (= i (dec (count grid))))
+                      pt
+                      (- ($= (pt / t-step)
+                             +
+                             (coeff * (nth grid (inc i)) - 2 * pt + (nth grid (dec i)))
+                                      /
+                                      (x-step ** 2))))))]
     (solve-with-tridiag coeff b coeff d-grid grid)))
