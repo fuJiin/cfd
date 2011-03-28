@@ -64,24 +64,24 @@
    Takes in coefficents a, b, c, and a 1xn vector as RHS values for D"
    [a b c d-grid orig-grid]
    (let [d-size (count d-grid)
-         rhs    (remove nil?                            ;; filter out nils at beginning or end
+         rhs    (remove nil?                          ;; filter out nils at beginning or end
                   (for [i (range 0 d-size)]
                     (cond
-                      (or (= i 0) (= i (dec d-size)))   ;; return nil if at beginning or end
+                      (or (= i 0) (= i (dec d-size))) ;; return nil if at beginning or end
                         nil
-                      (= i 1)                           ;; return D_n - a * u_1 for i = 2
+                      (= i 1)                         ;; return D_n - a * u_1 for i = 2
                         ($= (nth d-grid i) - a * (nth orig-grid 0))
-                      (= i (- d-size 2))                ;; return D_n - c * u_-1 for i = IM1
+                      (= i (- d-size 2))              ;; return D_n - c * u_-1 for i = IM1
                         ($= (nth d-grid i) - c * (nth orig-grid (dec d-size)))
-                      :else                             ;; otherwise return point on grid
+                      :else                           ;; otherwise return point on grid
                         (nth d-grid i))))
          length (count rhs)
-         coeffs (coeff-matrix length a b c)]            ;; get coefficient matrix
+         coeffs (coeff-matrix length a b c)]          ;; get coefficient matrix
       (vec
         (flatten
-          (vector (nth orig-grid 0)                     ;; add initial boundary value with...
-                  (mmult (solve coeffs) rhs)            ;; multiply inverse of coeff-matrix with rhs to solve grid
-                  (nth orig-grid (dec d-size)))))))     ;; and end boundary value
+          (vector (nth orig-grid 0)                   ;; add initial boundary value with...
+                  (mmult (solve coeffs) rhs)          ;; multiply inverse of coeff-matrix with rhs to solve grid
+                  (nth orig-grid (dec d-size)))))))   ;; and end boundary value
 
 (defn laasonen
   "Uses Laasonen implicit method to solve n+1.
@@ -95,15 +95,14 @@
 (defn crank-nicolson
   "Uses Crank-Nicolson to solve n+1"
   [grid x-step t-step alpha]
-  (let [coeff   ($= alpha / (2 * (x-step ** 2)))
-        b       (- ($= 2 * coeff + (1 / t-step)))
-        d-grid  (for [i (range 0 (count grid))]
-                  (let [pt (nth grid i)]
+  (let [b       (- ($= 2 + 2 / (alpha * t-step)))
+        d-grid  (for [i (range 0 (count grid))]       ;; iterate through grid indices to generate RHS
+                  (let [pt  (nth grid i)]
                     (if (or (= i 0) (= i (dec (count grid))))
-                      pt
-                      (- ($= (pt / t-step)
-                             +
-                             (coeff * (nth grid (inc i)) - 2 * pt + (nth grid (dec i)))
-                                      /
-                                      (x-step ** 2))))))]
-    (solve-with-tridiag coeff b coeff d-grid grid)))
+                      pt                              ;; just return value at boundary conds
+                      ($= ((0 - (nth grid (inc i)))   ;; otherwise calculate based on n-values
+                            + ((2 - (2 * (x-step ** 2) / (alpha * t-step))) * pt)
+                            - (nth grid (dec i)))
+                          /
+                          (x-step ** 2)))))]
+    (solve-with-tridiag 1 b 1 d-grid grid)))          ;; solve with tridiagonal sys of eqns
