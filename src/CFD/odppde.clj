@@ -1,7 +1,12 @@
+;; One Dimensional Parabolic Partial Differential Equations.
+;; All following function assume Dirichlet Boundary Conditions.
 (ns cfd.odppde
   (:use [incanter.core]))
 
 ;; Explicit Methods
+;; For simplication purposes, boundary conditions are assumed constant at edges.
+;; This should probably be a macro later, so it can be expanded at compile time,
+;; and not recalculated every iteration
 (defn calc-coeff
   "Calculates common coefficent term used in explicit methods"
   [x-step t-step alpha]
@@ -9,17 +14,17 @@
 
 (defn ftcs
   "Uses forward time/central space method to calculate n+1.
-   Takes a 1x3 vector as grid."
+   Takes a 1xn vector as grid."
   [grid x-step t-step alpha]
   (let [coeff   (calc-coeff x-step t-step alpha)
         length  (count grid)]
     (for [i (range 0 length)]
       (if (or (= 0 i) (= (dec length) i))
-          (nth grid i)                  ;; return initial value at boundary conditions
-          (let [pt  (nth grid i)
-                i+1 (nth grid (inc i))  ;; otherwise calculate using FTCS diff approx
-                i-1 (nth grid (dec i))]
-            ($= pt + coeff * (i+1 - (2 * pt) + i-1)))))))
+          (nth grid i)                  ;; return initial val at boundary conditions
+          (let [pt      (nth grid i)    ;; otherwise calculate using FTCS diff approx
+                next-pt (nth grid (inc i))
+                prev-pt (nth grid (dec i))]
+            ($= pt + coeff * (next-pt - (2 * pt) + prev-pt)))))))
 
 (defn ftcs-stable?
   "Check ftcs stability condition"
@@ -28,19 +33,26 @@
       1/2))
 
 (defn dufort-frankel
-  "Uses DuFort-Frankel method to calculate n+1
-   Takes a 2x3 matrix (2 1x3 vectors) as grid."
+  "Uses DuFort-Frankel method to calculate n+1,
+   taking a 2xn matrix as grid.
+   The length of each row in the 2xn matrix must match up."
    [grid x-step t-step alpha]
-   (let [n-1    (second (last grid))
-         i-1    (first (first grid))
-         i+1    (last (first grid))
-         coeff  (calc-coeff x-step t-step alpha)]
-    ($= ((1 - 2 * coeff) * n-1 + (2 * coeff) * (i+1 + i-1))
-        /
-        (1 + 2 * coeff))))
+   (let [coeff     (calc-coeff x-step t-step alpha)
+         pres-grid (last grid)
+         prev-grid (first grid)
+         length    (count pres-grid)]
+    (for [i (range 0 length)]                   ;; iterate through the grid
+      (if (or (= i 0) (= i (dec length)))
+        (nth pres-grid i)                       ;; return initial val at boundary conditions
+        (let [pt      (nth pres-grid i)         ;; otherwise calculate using dufort-frankel diff approx
+              next-pt (nth pres-grid (inc i))
+              prev-pt (nth pres-grid (dec i))
+              past-pt (nth prev-grid i)]
+          ($= ((1 - 2 * coeff) * past-pt + (2 * coeff) * (next-pt + prev-pt))
+              /
+              (1 + 2 * coeff)))))))
 
 ;; Implicit Methods
-;; For simplication purposes, boundary conditions are assumed constant at edges
 (defn diag-offset
   "Creates a diagonal matrix with offset.
    Positive offset shifts right; negative offset shifts left"
@@ -111,3 +123,46 @@
                           /
                           (x-step ** 2)))))]
     (solve-with-tridiag 1 b 1 d-grid grid)))          ;; solve with tridiagonal sys of eqns
+
+; Iteration helpers
+; Helps iterate through x and t steps, accumulating previous grid values
+(defn grid-run
+  "Iterate over grid using given function.  Accumulates results.
+   ++lookback++ indicates how many levels of n-results to use when calculating n+1.
+   This value should be 1 except when used with DuFort-Frankel method."
+  [func t-times init-grid x-step t-step alpha lookback]
+  (loop [output     (if (= lookback 1)              ;; initiate output based on lookback
+                        (conj [] init-grid)         ;; creates vec of a 1xn vec if lookback = 1
+                        init-grid)                  ;; otherwise use initial grid provided
+         grid       init-grid
+         t-counter  0]
+    (let [result    (func grid x-step t-step alpha) ;; call function on grid
+          new-grid  (conj output (vec result))      ;; log result
+          t         (inc t-counter)]                ;; add t
+      (if (>= t t-times)
+          new-grid                                  ;; return new-grid if at t-times
+          (recur new-grid                           ;; otherwise recalculate next step
+                 ;; get grid for next iteration based on lookback
+                 ;; should use single 1xn vec if lookback is 1,
+                 ;; otherwise use collection of m 1xn vectors to represent mxn matrix
+                 (if (= lookback 1)
+                     (last new-grid)
+                     (subvec new-grid (- (count new-grid) lookback)))
+                 t)))))
+
+(defn regular-run
+  "Shortcut method to do a grid-run with single lookback"
+  [func t-times init-grid x-step t-step alpha]
+  (grid-run func t-times init-grid x-step t-step alpha 1))
+
+(defn dufort-frankel-run
+  "Grid iteration for DuFort-Frankel method.
+   Takes in 1xn grid, and generates first n+1 using FTCS if stable,
+   otherwise uses Crank-Nicolson method."
+  [t-times init-grid x-step t-step alpha]
+  (let [stable    (ftcs-stable? x-step t-step alpha)
+        fut-grid  (if stable
+                      (ftcs           init-grid x-step t-step alpha)
+                      (crank-nicolson init-grid x-step t-step alpha))
+        grid      (conj [] init-grid (vec fut-grid))]
+    (grid-run dufort-frankel t-times grid x-step t-step alpha 2)))
