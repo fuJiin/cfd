@@ -4,17 +4,22 @@
 ;; Explicit Methods
 (defn calc-coeff
   "Calculates common coefficent term used in explicit methods"
-  [x-step t-step alpha])
+  [x-step t-step alpha]
+  ($= alpha * t-step / (x-step ** 2)))
 
 (defn ftcs
   "Uses forward time/central space method to calculate n+1.
    Takes a 1x3 vector as grid."
   [grid x-step t-step alpha]
-  (let [i-1     (first grid)
-        i       (second grid)
-        i+1     (last grid)
-        coeff   (calc-coeff x-step t-step alpha)]
-    ($= i + coeff * (i+1 - (2 * i) + i-1))))
+  (let [coeff   (calc-coeff x-step t-step alpha)
+        length  (count grid)]
+    (for [i (range 0 length)]
+      (if (or (= 0 i) (= (dec length) i))
+          (nth grid i)                  ;; return initial value at boundary conditions
+          (let [pt  (nth grid i)
+                i+1 (nth grid (inc i))  ;; otherwise calculate using FTCS diff approx
+                i-1 (nth grid (dec i))]
+            ($= pt + coeff * (i+1 - (2 * pt) + i-1)))))))
 
 (defn ftcs-stable?
   "Check ftcs stability condition"
