@@ -130,7 +130,7 @@
   "Iterate over grid using given function.  Accumulates results.
    ++lookback++ indicates how many levels of n-results to use when calculating n+1.
    This value should be 1 except when used with DuFort-Frankel method."
-  [func t-times init-grid x-step t-step alpha lookback]
+  [func t-limit init-grid x-step t-step alpha lookback]
   (loop [output     (if (= lookback 1)              ;; initiate output based on lookback
                         (conj [] init-grid)         ;; creates vec of a 1xn vec if lookback = 1
                         init-grid)                  ;; otherwise use initial grid provided
@@ -139,8 +139,8 @@
     (let [result    (func grid x-step t-step alpha) ;; call function on grid
           new-grid  (conj output (vec result))      ;; log result
           t         (inc t-counter)]                ;; add t
-      (if (>= t t-times)
-          new-grid                                  ;; return new-grid if at t-times
+      (if (>= t t-limit)
+          new-grid                                  ;; return new-grid if at t-limit
           (recur new-grid                           ;; otherwise recalculate next step
                  ;; get grid for next iteration based on lookback
                  ;; should use single 1xn vec if lookback is 1,
@@ -152,17 +152,17 @@
 
 (defn regular-run
   "Shortcut method to do a grid-run with single lookback"
-  [func t-times init-grid x-step t-step alpha]
-  (grid-run func t-times init-grid x-step t-step alpha 1))
+  [func t-limit init-grid x-step t-step alpha]
+  (grid-run func t-limit init-grid x-step t-step alpha 1))
 
 (defn dufort-frankel-run
   "Grid iteration for DuFort-Frankel method.
    Takes in 1xn grid, and generates first n+1 using FTCS if stable,
    otherwise uses Crank-Nicolson method."
-  [t-times init-grid x-step t-step alpha]
+  [t-limit init-grid x-step t-step alpha]
   (let [stable    (ftcs-stable? x-step t-step alpha)
         fut-grid  (if stable
                       (ftcs           init-grid x-step t-step alpha)
                       (crank-nicolson init-grid x-step t-step alpha))
         grid      (conj [] init-grid (vec fut-grid))]
-    (grid-run dufort-frankel t-times grid x-step t-step alpha 2)))
+    (grid-run dufort-frankel t-limit grid x-step t-step alpha 2)))
