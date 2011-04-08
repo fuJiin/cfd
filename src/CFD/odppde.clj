@@ -12,7 +12,7 @@
   [x-step t-step alpha]
   ($= alpha * t-step / (x-step ** 2)))
 
-(defn ftcs
+(defn ^{:graph-title "FTCS"} ftcs
   "Uses forward time/central space method to calculate n+1.
    Takes a 1xn vector as grid."
   [grid x-step t-step alpha]
@@ -32,7 +32,7 @@
   (<= (calc-coeff x-step t-step alpha)
       1/2))
 
-(defn dufort-frankel
+(defn ^{:graph-title "DuFort-Frankel"} dufort-frankel
   "Uses DuFort-Frankel method to calculate n+1,
    taking a 2xn matrix as grid.
    The length of each row in the 2xn matrix must match up."
@@ -100,7 +100,7 @@
                   (mmult (solve coeffs) rhs)          ;; multiply inverse of coeff-matrix with rhs to solve grid
                   (nth orig-grid (dec d-size)))))))   ;; and end boundary value
 
-(defn laasonen
+(defn ^{:graph-title "Laasonen"} laasonen
   "Uses Laasonen implicit method to solve n+1.
    Takes in 1xn grid of points"
   [grid x-step t-step alpha]
@@ -109,7 +109,7 @@
         d-grid  (map #(- %) grid)] ;; RHS is negative of current point for Laasonen
     (solve-with-tridiag coeff b coeff d-grid grid)))
 
-(defn crank-nicolson
+(defn ^{:graph-title "Crank-Nicolson"} crank-nicolson
   "Uses Crank-Nicolson to solve n+1"
   [grid x-step t-step alpha]
   (let [b       (- ($= 2 + 2 / (alpha * t-step)))
