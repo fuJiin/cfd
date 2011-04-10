@@ -67,12 +67,14 @@
   [f x-step t-step]
   (let [data        (get-disp-data f x-step t-step)
         t-steps     ($= t-limit / t-step)
-        t-column    (map #(* % t-step)
+        disp-steps  ($= t-steps * display-int / t-limit)
+        t-column    (map #(format "%.2f" (* % t-step disp-steps)) ; rounds to 2 decimals
                           (take (inc t-steps) (iterate inc 0)))
         disp-steps  ($= t-steps * display-int / t-limit)
         x-steps     ($= thickness / x-step)
-        x-column    (map #(* % x-step)
+        x-column    (map #(format "%.2f" (* % x-step))            ; rounds to 2 decimals
                           (take (inc x-steps) (iterate inc 0)))]
+    (println disp-steps)
     (loop [row-i 0
            d-set []]
       (if (= row-i (count data))
@@ -85,12 +87,19 @@
             (recur (inc row-i)
                    (into d-set mapping)))))))
 
-(defn graph
+(defmacro get-graph-title
+  "Gets graph-title metadata from function"
+  [func]
+  `(:graph-title (meta (var ~func))))
+
+(defmacro graph
   "Graph simulation dataset"
   [f x-step t-step]
-  (let [d-set (make-dataset f x-step t-step)]
-    (with-data d-set
+  `(let [d-set# (make-dataset ~f ~x-step ~t-step)]
+    (with-data d-set#
       (line-chart :x :T
-        :title    (str ((meta f) :name)) ; name from function metadata
+        :title    (get-graph-title ~f) ; name from function metadata
+        :x-label  "Length (ft)"
+        :y-label  "Temperature (deg. F)"
         :group-by :t
         :legend   true))))
