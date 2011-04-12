@@ -2,6 +2,15 @@
   (:use [incanter core charts])
   (:use [cfd.odppde]))
 
+;; Set problem conditions ;;
+(def thickness 1)     ; ft        ; wall thickness
+(def temp-init 100)   ; deg F     ; initial temperature
+(def temp-surf 300)   ; deg F     ; surface temperature
+(def alpha 0.1)       ; ft^2 / hr ; diffusivity
+(def t-limit 0.5)     ; hrs       ; time limit
+(def display-int 0.1) ; hr        ; display-interval
+
+;; Analytical solution
 (defn analytic-solve
   "Analytical solution for 3.1"
   [ts ti l x t alpha n]
@@ -18,13 +27,38 @@
                   (pmap f (iterate inc 1))))]
     ($= ts + 2 * (ti - ts) * series)))
 
-;; Set problem conditions ;;
-(def thickness 1)     ; ft        ; wall thickness
-(def temp-init 100)   ; deg F     ; initial temperature
-(def temp-surf 300)   ; deg F     ; surface temperature
-(def alpha 0.1)       ; ft^2 / hr ; diffusivity
-(def t-limit 0.5)     ; hrs       ; time limit
-(def display-int 0.1) ; hr        ; display-interval
+(defn analytic-dataset
+  "Create dataset for analytic solution based on x-step"
+  [x-step]
+  (let [x-steps   ($= thickness / x-step)
+        x-column  (map #(* % x-step)
+                        (take (inc x-steps) (iterate inc 0)))
+        t-column  [0.1 0.2 0.3 0.4 0.5]]
+    (-> (for [t t-column]                 ; iterate through time column
+          (for [x x-column]               ; ...and x column
+            {:x (format "%.2f" x)         ; build dataset
+             :t t
+             :T (analytic-solve temp-surf temp-init thickness x t alpha 20)}))
+        (conj (vec                        ; add initial conditions
+                (for [x x-column]
+                  {:x (format "%.2f" x)
+                   :t 0
+                   :T (if (or (= x 0) (= x (last x-column)))
+                          temp-surf
+                          temp-init)})))
+        flatten                           ; flatten data
+        to-dataset)))                     ; make dataset
+
+(defn analytic-graph
+  [x-step]
+  (-> (analytic-dataset x-step)
+      (with-data
+        (line-chart :x :T
+          :title "Analytical Solution"
+          :x-label  "Length (ft)"
+          :y-label  "Temperature (deg. F)"
+          :group-by :t
+          :legend   true))))
 
 ;; Graph helpers ;;
 (defn init-grid
@@ -74,7 +108,6 @@
         x-steps     ($= thickness / x-step)
         x-column    (map #(format "%.2f" (* % x-step))            ; rounds to 2 decimals
                           (take (inc x-steps) (iterate inc 0)))]
-    (println disp-steps)
     (loop [row-i 0
            d-set []]
       (if (= row-i (count data))
