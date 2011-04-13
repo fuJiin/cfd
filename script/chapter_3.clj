@@ -1,5 +1,5 @@
 (ns cfd.script.chapter-3
-  (:use [incanter core charts])
+  (:use [incanter core charts io pdf])
   (:use [cfd.odppde]))
 
 ;; Set problem conditions ;;
@@ -14,7 +14,7 @@
 (defn analytic-solve
   "Analytical solution for 3.1"
   [ts ti l x t alpha n]
-  (let [f (fn [m]
+  (let [f (fn [m]                       ; assign expansion function
             ($= (Math/E ** (0 - (((m * Math/PI / l) ** 2) * alpha * t)))
                 *
                 (1 - (-1 ** m))
@@ -22,10 +22,10 @@
                 (sin ($= m * Math/PI * x / l))
                 /
                 (m * Math/PI)))
-        series (reduce +
+        series (reduce +                ; sum n iterations of the function
                 (take n
                   (pmap f (iterate inc 1))))]
-    ($= ts + 2 * (ti - ts) * series)))
+    ($= ts + 2 * (ti - ts) * series)))  ; add other components
 
 (defn analytic-dataset
   "Create dataset for analytic solution based on x-step"
@@ -54,7 +54,7 @@
   (-> (analytic-dataset x-step)
       (with-data
         (line-chart :x :T
-          :title "Analytical Solution"
+          :title    (str "Analytical Solution" " ∆x=" x-step)
           :x-label  "Length (ft)"
           :y-label  "Temperature (deg. F)"
           :group-by :t
@@ -131,7 +131,7 @@
   `(let [d-set# (make-dataset ~f ~x-step ~t-step)]
     (with-data d-set#
       (line-chart :x :T
-        :title    (get-graph-title ~f) ; name from function metadata
+        :title    (str (get-graph-title ~f) " x-step=" ~x-step " " "t-step=" ~t-step) ; name from function metadata
         :x-label  "Length (ft)"
         :y-label  "Temperature (deg. F)"
         :group-by :t
