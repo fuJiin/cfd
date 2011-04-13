@@ -131,7 +131,8 @@
   `(let [d-set# (make-dataset ~f ~x-step ~t-step)]
     (with-data d-set#
       (line-chart :x :T
-        :title    (str (get-graph-title ~f) " x-step=" ~x-step " " "t-step=" ~t-step) ; name from function metadata
+        ;; name from function metadata ;;
+        :title    (str (get-graph-title ~f) " x-step=" ~x-step " " "t-step=" ~t-step)
         :x-label  "Length (ft)"
         :y-label  "Temperature (deg. F)"
         :group-by :t
