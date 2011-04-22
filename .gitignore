@@ -6,3 +6,5 @@ lib
 classes
 build
 ./CFD
+.DS_Store
+*/.DS_Store
