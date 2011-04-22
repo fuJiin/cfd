@@ -40,7 +40,7 @@
       (doseq [m meths]  ; iterate through methods (central, backward, forward)
         (let [title (str x "-" (name m) "-" title-power)
               data  (for [step step-sizes]                                ; iterate through x-steps
-                      (let [y       (fd-approx power 2 m f x step)        ; compute at x with given method, step-size
+                      (let [y       (fd-approx power 2 m f x step)        ; compute at x with method, step-size
                             error   (abs (calc-error y (deriv-func x)))]  ; compute error
                          {:step-size  step
                          :value       y
